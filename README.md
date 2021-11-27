@@ -3,7 +3,7 @@
 
 ## Prequisites
 ---
-1. You need python verion 3.8+
+1. You need python verion 3.9+
 2. run python pip install requirements.txt to install needed dependencies
 3. In the same folder as main.py create a file called config.csv (how to fill out config.csv will be describe in a later section)
 4. Gather the appropriate information about the mods you want to automate
