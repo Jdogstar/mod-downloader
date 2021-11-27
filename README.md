@@ -1,11 +1,16 @@
 # Sims Mod Downloader v0.1
 ## This is just a small script written by me for my gf to automate the download of *most* mods
 
+## Setup install
+---
+If you are completely new to python and github read this first, otherwise skip to prequisites. First, you need to download this repository as a zip file. Click on the green **CODE** button on the top right and click download as zip. This will download the repository as a zip file. Extract the zip file to where ever you want this program to go.
+You then need to install python. There are many tutorials online for installing it, here is an example one https://www.tutorialspoint.com/how-to-install-python-in-windows. Next open up powershell, cmd, or bash, just some sort of command line termainal. Us the command cd to navigate to wherever you stored the unziped file on your computer. Example `cd Desktop/sims4_modder_main/`. Run the command `pip install -r requirements.txt`. Now you can go onto creating the .csv file.
+
 ## Prequisites
 ---
 1. You need python verion 3.8+
-2. run python pip install requirements.txt to install needed dependencies
-3. In the same folder as main.py create a file called config.csv (how to fill out config.csv will be describe in a later section)
+2. run pip install -r requirements.txt to install needed dependencies using powershell or cmd or bash
+3. In the same folder as main.py create a file called config.csv (how to fill out config.csv will be described in a later section)
 4. Gather the appropriate information about the mods you want to automate
 
 ## Config.csv file syntax
@@ -23,6 +28,8 @@ This is the config file that the program uses to store what mods you want to dow
 > http://exactdownloadurl, C://absolutepathtostoremodto \
 > http://exactdownloadurl2, C://absolutepathtostoremodto2 \
 > http://exactdownloadurl3, C://absolutepathtostoremodto3 \
+
+- Ensure that it is actually a .csv file and not a .txt. Specifically on windows, when you create a new text document, by defualt it will not let you change extensions. Ensure that in your file explorer, you have enabled view file name extensions. If your config filename looks like `config.csv.txt`, just rename and delete the `.txt` and it should work.
 
 ## Usage
 Assuming you have read and completed the required tasks in the previous section, the usage is pretty simple. Simply open up any given terminal (powershell, command line, bash etc), navigate to where you placed the main.py & config.csv with cd /path/to/folder/holding/files/, and run the following command:
