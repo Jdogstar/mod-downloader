@@ -8,7 +8,7 @@ You then need to install python. There are many tutorials online for installing 
 
 ## Prequisites
 ---
-1. You need python verion 3.8+
+1. You need python version 3.9+
 2. run pip install -r requirements.txt to install needed dependencies using powershell or cmd or bash
 3. In the same folder as main.py create a file called config.csv (how to fill out config.csv will be described in a later section)
 4. Gather the appropriate information about the mods you want to automate
