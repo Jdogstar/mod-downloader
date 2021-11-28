@@ -15,7 +15,7 @@ You then need to install python. There are many tutorials online for installing 
 
 ## Config.csv file syntax
 ---
-This is the config file that the program uses to store what mods you want to download/automate with the program. The syntax for the file is as follows (If you are viewing this file raw, instead of in something that interprets markdown, just ignore the "> " preceding each one of theses lines and the "\" following each line, ***I REPEAT DO NOT PUT THE > or \ IN YOUR CSV FILE***):
+This is the config file that the program uses to store what mods you want to download/automate with the program. The syntax for the file is as follows (If you are viewing this file raw a.k.a not on github, just ignore the "> " preceding each one of theses lines and the "\" following each line, ***I REPEAT DO NOT PUT THE > or \ IN YOUR CSV FILE***):
 > http://exactdownloadurl, C://absolutepathtostoremodto, optional_filename \
 > http://exactdownloadurl2, C://absolutepathtostoremodto2, optional_filename2 \
 > http://exactdownloadurl3, C://absolutepathtostoremodto3, optional_filename3
