@@ -29,7 +29,7 @@ use lib::*;
 use threadpool::ThreadPool;
 use std::{vec::Vec, error::Error, path::Path};
 use clap::Parser;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 /// Simple program to download sims mod
 #[derive(Parser, Debug)]
@@ -51,8 +51,7 @@ struct Record {
     file_name:Option<String>,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     let mut mods: Vec<Record> = Vec::new();
     let args = Args::parse();
     let config_file = Path::new(&args.path);
@@ -63,18 +62,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
             mods.push(record);
         }
         let pool = ThreadPool::new(args.count);
-        let bar = ProgressBar::new(mods.len().try_into().unwrap());
-        bar.set_style(ProgressStyle::default_bar().template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}"));
+        let bar = MultiProgress::new();
         for rec in mods{
-            bar.inc(1);
-            bar.set_message(format!("Downloading {}", &rec.url));
+            let pb = bar.add(ProgressBar::new_spinner());
+            pb.set_style(ProgressStyle::default_spinner().template("{prefix:.bold.dim} {spinner} {wide_msg}"));
+            pb.enable_steady_tick(300);
             pool.execute(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                rt.block_on(get_mod((&rec.path, &rec.url, &rec.file_name)));
+                pb.set_message(format!("Downloading and saving: {}", &rec.url));
+                let res = get_mod((&rec.path, &rec.url, &rec.file_name));
+                match res {
+                    Ok(_) => pb.finish_and_clear(),
+                    Err(err) => {
+                        pb.finish_and_clear();
+                        println!("{}", err);
+                    }
+                }
             });
         }
+        bar.join().unwrap();
         pool.join();
-        bar.finish();
     } else {
         println!("Config file does not exist.")
     }

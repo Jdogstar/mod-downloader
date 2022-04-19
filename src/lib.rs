@@ -50,27 +50,25 @@
 //     return
 use regex::Regex;
 use std::path::Path;
-use compress_tools::*;
 use std::fs::{File, remove_file, write};
-use std::ffi::OsStr;
+use std::{error::Error, ffi::OsStr};
 use reqwest::header::USER_AGENT;
-use reqwest::Client;
+use reqwest::blocking;
 
-pub async fn get_mod(mod_details: (&String, &String, &Option<String>)) -> () {
+pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), Box<dyn Error>> {
     let (mod_path, mod_url, file_name) = mod_details;
-    let client = Client::new();
-    client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send().await.expect("Something went wrong pinging download.");
-    let mod_http = client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send().await;
+    let client = blocking::Client::new();
+    client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send().expect("Something went wrong pinging the download.");
+    let mod_http = client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send();
     let resp;
     match mod_http {
         Ok(res) => resp = res,
         Err(err) => {
-            println!("{} with error: {}\nSkipping...", mod_url, err);
-            return
+            return Err(format!("{} with error: {}\nSkipping...", mod_url, err).into());
         }
     }
-    let ret = parse_filename(resp.headers()).await;
-    let content = resp.bytes().await.expect("Couldn't parse file into bytes, exiting...");
+    let ret = parse_filename(resp.headers());
+    let content = resp.bytes().expect(&format!("Couldn't parse file {} into bytes, exiting...", &mod_url)[..]);
     let perm_file_name;
     match ret {
         Some(name) => perm_file_name = name,
@@ -79,7 +77,7 @@ pub async fn get_mod(mod_details: (&String, &String, &Option<String>)) -> () {
                 Some(name) => perm_file_name = name.to_string(),
                 None =>  {
                     println!("ERROR: no filename from http content, must provide filename in config");
-                    return
+                    return Err(format!("ERROR: no filename from http content, must provide filename in config").into());
                 }
             }
         }
@@ -89,18 +87,19 @@ pub async fn get_mod(mod_details: (&String, &String, &Option<String>)) -> () {
     let parent_path = Path::new(mod_path);
     write(path, content).expect("Failed to write file, exiting...");
     if path.extension() == Some(OsStr::new("package")) || path.extension() == Some(OsStr::new("script")) {
-        return
-    } else if path.extension() == Some(OsStr::new("zip")) || path.extension() == Some(OsStr::new("7z")) {
-        let mut source = File::open(path).expect("Couldn't open zipfile");
-        uncompress_archive(&mut source, &parent_path, Ownership::Ignore).expect("Couldn't unzip zipfile");
+        return Ok(());
+    } else if path.extension() == Some(OsStr::new("zip")) {
+        let source = File::open(path).expect("Couldn't open zipfile");
+        zip_extract::extract(&source, &parent_path, false).expect("Couldn't unzip archive...");
         remove_file(path).expect("Failed to clean up zip file");
     } else {
-        println!("ERROR: no acceptable extension for filename detected, skipping...");
         remove_file(path).expect("Failed to remove temp file");
+        return Err(format!("ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_url, path.extension().unwrap()).into());
     }
+    Ok(())
 }
 
-async fn parse_filename (headers: &reqwest::header::HeaderMap) -> Option<String>{
+fn parse_filename (headers: &reqwest::header::HeaderMap) -> Option<String>{
     let re = Regex::new("filename=\"*([^\"]+)\"").unwrap();
     match headers.get("content-disposition") {
         Some(file_header) => {
