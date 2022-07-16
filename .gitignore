@@ -3,3 +3,4 @@ config.csv
 .vscode
 # Added by cargo
 /target
+/logs

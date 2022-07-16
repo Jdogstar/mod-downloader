@@ -3,7 +3,6 @@
 
 //     Threading function to download the mod using requests.
 //     It then takes certain actions based on the file extension.
-
 //     Args:
 //         mod_details: a tuple holding the url, absolute path to save to,
 //         and the optional filename. Filename is None
@@ -50,13 +49,14 @@
 //     return
 use regex::Regex;
 use std::path::Path;
-use std::fs::{File, remove_file, write};
+use std::fs::{remove_file, write};
 use std::{error::Error, ffi::OsStr};
 use reqwest::header::USER_AGENT;
 use reqwest::blocking;
+use mt_logger::*;
+mod unzip;
 
-pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), Box<dyn Error>> {
-    let (mod_path, mod_url, file_name) = mod_details;
+fn retrieve_mod(mod_url: &String) -> Result<blocking::Response, Box<dyn Error>> {
     let client = blocking::Client::new();
     client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send().expect("Something went wrong pinging the download.");
     let mod_http = client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send();
@@ -64,12 +64,36 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     match mod_http {
         Ok(res) => resp = res,
         Err(err) => {
-            return Err(format!("{} with error: {}\nSkipping...", mod_url, err).into());
+            mt_log!(Level::Info, "{} with error: {}", mod_url, err);
+            return Err(format!("{} with error: {}", mod_url, err).into());
+        }
+    }
+    Ok(resp)
+}
+
+pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), Box<dyn Error>> {
+    let (mod_path, mod_url, file_name) = mod_details;
+    let resp;
+    let mut attempts = 5;
+    loop {
+        match retrieve_mod(mod_url) {
+            Ok(res) => {resp = res; break},
+            Err(_error) => {attempts -= 1;}
+        };
+        if attempts > -1 {
+            mt_log!(Level::Error, "Failed to retrieve mod {}", &mod_url);
+            return Err("Failed to retrieve mod".to_string().into());
         }
     }
     let ret = parse_filename(resp.headers());
-    let content = resp.bytes().expect(&format!("Couldn't parse file {} into bytes, exiting...", &mod_url)[..]);
-    let perm_file_name;
+    let content;
+    match resp.bytes() {
+        Ok(cont) => content = cont,
+        Err(err) => {mt_log!(Level::Error, "Couldn't parse file {} into bytes with err {}, exiting...", &mod_url, &err);
+                            return Err(format!("Couldn't parse file {} into bytes with err {}, exiting...", &mod_url, &err).into());}
+    }
+    mt_flush!().unwrap();
+    let mut perm_file_name;
     match ret {
         Some(name) => perm_file_name = name,
         None => {
@@ -82,6 +106,10 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
             }
         }
     }
+    if perm_file_name.contains(" ") {
+        let words_in_path: Vec<&str> = perm_file_name.split_whitespace().collect();
+        perm_file_name = words_in_path.join("_")
+    }
     let path_ref = &format!("{}/{}", mod_path, perm_file_name)[..];
     let path = Path::new(path_ref);
     let parent_path = Path::new(mod_path);
@@ -89,8 +117,9 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     if path.extension() == Some(OsStr::new("package")) || path.extension() == Some(OsStr::new("script")) {
         return Ok(());
     } else if path.extension() == Some(OsStr::new("zip")) {
-        let source = File::open(path).expect("Couldn't open zipfile");
-        zip_extract::extract(&source, &parent_path, false).expect("Couldn't unzip archive...");
+        // let source = File::open(path).expect("Couldn't open the archive");
+        // zip_extract::extract(&source, &parent_path, false).expect("Couldn't unzip archive...");
+        unzip::unzip(path.to_str().unwrap(), parent_path.to_str().unwrap()).expect(format!("Failed to open archive {}", path.to_str().unwrap()).as_str());
         remove_file(path).expect("Failed to clean up zip file");
     } else {
         remove_file(path).expect("Failed to remove temp file");

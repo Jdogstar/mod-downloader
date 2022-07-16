@@ -21,25 +21,24 @@
 //     with ThreadPoolExecutor() as process:
 //         # map each row to a thread from the threadpool
 //         process.map(get_mod, mod_list)
-mod lib;
 extern crate csv;
 #[macro_use]
 extern crate serde_derive;
-use lib::*;
 use threadpool::ThreadPool;
 use std::{vec::Vec, error::Error, path::Path};
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use mt_logger::*;
 
-/// Simple program to download sims mod
+/// A simple program to download sims mod
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Path to the config file
+    /// Path to the csv config file
     #[clap(short, long)]
     path: String,
 
-    /// Number of threads to run
+    /// Number of threads to give the pool
     #[clap(short, long, default_value_t = 4)]
     count: usize,
 }
@@ -52,6 +51,7 @@ struct Record {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    mt_new!(None, Level::Info, OutputStream::File);
     let mut mods: Vec<Record> = Vec::new();
     let args = Args::parse();
     let config_file = Path::new(&args.path);
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             pb.enable_steady_tick(300);
             pool.execute(move || {
                 pb.set_message(format!("Downloading and saving: {}", &rec.url));
-                let res = get_mod((&rec.path, &rec.url, &rec.file_name));
+                let res = sims4_modder::get_mod((&rec.path, &rec.url, &rec.file_name));
                 match res {
                     Ok(_) => pb.finish_and_clear(),
                     Err(err) => {
@@ -82,7 +82,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         bar.join().unwrap();
         pool.join();
     } else {
-        println!("Config file does not exist.")
+        mt_log!(Level::Fatal, "Config file {:?} was not found", config_file)
     }
+    mt_flush!().unwrap();
     Ok(())
 }
