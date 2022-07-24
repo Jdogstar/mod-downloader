@@ -1,1 +1,6 @@
 config.csv
+/test_folder
+.vscode
+# Added by cargo
+/target
+/logs
