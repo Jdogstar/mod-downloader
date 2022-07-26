@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             pb.enable_steady_tick(300);
             pool.execute(move || {
                 pb.set_message(format!("Downloading and saving: {}", &rec.url));
-                let res = sims4_modder::get_mod((&rec.path, &rec.url, &rec.file_name));
+                let res = mod_downloader::get_mod((&rec.path, &rec.url, &rec.file_name));
                 match res {
                     Ok(_) => pb.finish_and_clear(),
                     Err(err) => {

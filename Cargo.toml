@@ -1,5 +1,5 @@
 [package]
-name = "sims4_modder"
+name = "mod_downloader"
 version = "0.1.0"
 edition = "2021"
 
