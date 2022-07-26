@@ -1,52 +1,3 @@
-// def get_mod(mod_details):
-//     """Function to run in thread to handle each mod.
-
-//     Threading function to download the mod using requests.
-//     It then takes certain actions based on the file extension.
-//     Args:
-//         mod_details: a tuple holding the url, absolute path to save to,
-//         and the optional filename. Filename is None
-//         if it's not provided in the tuple.
-//     """
-//     # get the absolute path
-//     mod_path = Path(mod_details[1])
-//     # grab the file from the url
-//     mod_http = requests.get(mod_details[0])
-//     # seperate into content header and the actual file bytes
-//     content = mod_http.content
-//     condis = mod_http.headers['content-disposition']
-//     # get the filename
-//     filename = get_filename(condis)
-//     # if there is no filename from the content header
-//     if not filename:
-//         # if there is no optional name either, print error, skip mod
-//         if not mod_details[2]:
-//             print("ERROR: no filename from http content, " +
-//                   "must provide filename in csv")
-//             return
-//         else:
-//             # else use optional name provided in the .csv
-//             filename = mod_details[2]
-//     # full path to save mod to
-//     full_path = mod_path / filename
-//     # get filename extension
-//     file_extension = Path(filename).suffix
-//     # write the mod file to the save path
-//     with open(full_path, 'wb') as mod_file:
-//         mod_file.write(content)
-//     # if it's a simple script or package, just return, job done
-//     if file_extension in (".ts4script", ".package"):
-//         return
-//     # if it's a zip or 7z, use the archive module to extract files in the zip
-//     elif file_extension in (".zip", ".7z"):
-//         Archive(full_path).extractall(mod_path)
-//         # remove the original zip as it's no longer needed
-//         os.remove(full_path)
-//         return
-//     # report unaccounted for file extension, but keep the download
-//     else:
-//         print("ERROR: Unaccounted for file extension")
-//     return
 use regex::Regex;
 use std::path::Path;
 use std::fs::{remove_file, write};
@@ -68,29 +19,45 @@ fn retrieve_mod(mod_url: &String) -> Result<blocking::Response, Box<dyn Error>> 
             return Err(format!("{} with error: {}", mod_url, err).into());
         }
     }
+    match resp.status().as_u16() {
+        200..=299 => mt_log!(Level::Info, "Successful request to {}", mod_url),
+        _ => {
+            mt_log!(Level::Error, "Unsuccessful request to {}", mod_url);
+            return Err(format!("Unsuccessful request to {}", mod_url).into());
+        }
+    }
+    match resp.headers().get("content-type") {
+        Some(cont_type) => mt_log!(Level::Info, "Content type {:?}", cont_type),
+        None => {
+            mt_log!(Level::Error, "No content type for {}", mod_url);
+            return Err(format!("Unsuccessful request to {}", mod_url).into());
+        }
+    }
     Ok(resp)
 }
 
 pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), Box<dyn Error>> {
     let (mod_path, mod_url, file_name) = mod_details;
-    let resp;
+    let mut resp;
     let mut attempts = 5;
     loop {
         match retrieve_mod(mod_url) {
             Ok(res) => {resp = res; break},
             Err(_error) => {attempts -= 1;}
         };
-        if attempts > -1 {
+        if attempts < 0 {
             mt_log!(Level::Error, "Failed to retrieve mod {}", &mod_url);
             return Err("Failed to retrieve mod".to_string().into());
         }
     }
     let ret = parse_filename(resp.headers());
-    let content;
-    match resp.bytes() {
-        Ok(cont) => content = cont,
-        Err(err) => {mt_log!(Level::Error, "Couldn't parse file {} into bytes with err {}, exiting...", &mod_url, &err);
-                            return Err(format!("Couldn't parse file {} into bytes with err {}, exiting...", &mod_url, &err).into());}
+    let mut buf: Vec<u8> = vec![];
+    match resp.copy_to(&mut buf) {
+        Ok(_) => mt_log!(Level::Info, "Successfully parsed file {} into bytes", &mod_url),
+        Err(err) => {
+            mt_log!(Level::Error, "Couldn't parse file {} into bytes with err {}", &mod_url, &err);
+            return Err(format!("Couldn't parse file {} into bytes with err {}", &mod_url, &err).into())
+        }
     }
     mt_flush!().unwrap();
     let mut perm_file_name;
@@ -113,10 +80,16 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     let path_ref = &format!("{}/{}", mod_path, perm_file_name)[..];
     let path = Path::new(path_ref);
     let parent_path = Path::new(mod_path);
-    write(path, content).expect("Failed to write file, exiting...");
+    match write(path, buf) {
+        Ok(_) => mt_log!(Level::Info, "Successfully wrote file {}", &mod_url),
+        Err(err) => {
+            mt_log!(Level::Error, "Couldn't write file {} with err {}", &mod_url, &err);
+            return Err(format!("Couldn't write file {} with err {}", &mod_url, &err).into())
+        }
+    }
     if path.extension() == Some(OsStr::new("package")) || path.extension() == Some(OsStr::new("script")) {
         return Ok(());
-    } else if path.extension() == Some(OsStr::new("zip")) {
+    } else if path.extension() == Some(OsStr::new("zip")) || path.extension() == Some(OsStr::new("7z")) {
         // let source = File::open(path).expect("Couldn't open the archive");
         // zip_extract::extract(&source, &parent_path, false).expect("Couldn't unzip archive...");
         unzip::unzip(path.to_str().unwrap(), parent_path.to_str().unwrap()).expect(format!("Failed to open archive {}", path.to_str().unwrap()).as_str());

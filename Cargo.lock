@@ -514,6 +514,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mod_downloader"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "csv",
+ "hyper",
+ "indicatif",
+ "mt_logger",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_derive",
+ "threadpool",
+]
+
+[[package]]
 name = "mt_logger"
 version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -854,22 +870,6 @@ dependencies = [
  "itoa 1.0.2",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "sims4_modder"
-version = "0.1.0"
-dependencies = [
- "clap",
- "csv",
- "hyper",
- "indicatif",
- "mt_logger",
- "regex",
- "reqwest",
- "serde",
- "serde_derive",
- "threadpool",
 ]
 
 [[package]]
