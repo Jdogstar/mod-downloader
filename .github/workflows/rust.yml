@@ -18,7 +18,7 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release && strip target/release/PROJECT_NAME && mv target/release/mod_downloader target/release/mod_downloader_amd64
+        run: cargo build --all --release && strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_amd64
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -70,7 +70,7 @@ jobs:
           override: true
 
       - name: Build for mac
-        run: cargo build --all --release && strip target/release/PROJECT_NAME && mv target/release/mod_downloader target/release/mod_downloader_darwin
+        run: cargo build --all --release && strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
