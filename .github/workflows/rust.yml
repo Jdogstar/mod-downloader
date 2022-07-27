@@ -18,10 +18,11 @@ jobs:
           override: true
 
       - name: Build
-        run: 	|
-            rustup target add x86_64-unknown-linux-gnu
+      - run: 	|
             cargo build --release
-            strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_linux_amd64
+            strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_linux_amd64   
+      - run:  |
+            rustup target add x86_64-unknown-linux-gnu
             cargo build --target x86_64-unknown-linux-gnu --release
             strip target/x86_64-unknown-linux-gnu/release/mod_downloader && mv target/x86_64-unknown-linux-gnu/release/mod_downloader target/x86_64-unknown-linux-gnu/release/mod_downloader_linux
 
@@ -56,7 +57,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: target/release/mod_downloader_wins.exe
+          files: target/release/mod_downloader.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
