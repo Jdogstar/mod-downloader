@@ -18,14 +18,19 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release && strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_amd64
+        run: 	|
+            rustup target add --toolchain x86_64-unknown-linux-gnu
+            cargo build --all-targets --release
+            strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_linux_amd64
+            strip target/x86_64-unknown-linux-gnu/mod_downloader_linux && mv target/x86_64-unknown-linux-gnu/mod_downloader target/x86_64-unknown-linux-gnu/mod_downloader_linux
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            target/release/mod_downloader_amd64
+            target/x86_64-unknown-linux-gnu/mod_downloader_linux
+            target/release/mod_downloader_linux_amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -44,13 +49,13 @@ jobs:
           override: true
 
       - name: Build
-        run: cargo build --all --release
+        run: cargo build --release
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: target/release/mod_downloader.exe
+          files: target/release/mod_downloader_wins.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -70,7 +75,7 @@ jobs:
           override: true
 
       - name: Build for mac
-        run: cargo build --all --release && strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_darwin
+        run: cargo build --release && strip target/release/mod_downloader && mv target/release/mod_downloader target/release/mod_downloader_darwin
 
       - name: Release
         uses: softprops/action-gh-release@v1
