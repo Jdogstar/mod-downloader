@@ -90,14 +90,15 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     if path.extension() == Some(OsStr::new("package")) || path.extension() == Some(OsStr::new("script")) {
         return Ok(());
     } else if path.extension() == Some(OsStr::new("zip")) || path.extension() == Some(OsStr::new("7z")) {
-        // let source = File::open(path).expect("Couldn't open the archive");
-        // zip_extract::extract(&source, &parent_path, false).expect("Couldn't unzip archive...");
+        mt_log!(Level::Info, "Archive detected, moving to unzip {:?} at {:?}", path, parent_path);
         unzip::unzip(path.to_str().unwrap(), parent_path.to_str().unwrap()).expect(format!("Failed to open archive {}", path.to_str().unwrap()).as_str());
         remove_file(path).expect("Failed to clean up zip file");
     } else {
         remove_file(path).expect("Failed to remove temp file");
+        mt_log!(Level::Error, "ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_url, path.extension().unwrap());
         return Err(format!("ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_url, path.extension().unwrap()).into());
     }
+    mt_flush!().unwrap();
     Ok(())
 }
 

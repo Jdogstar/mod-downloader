@@ -84,6 +84,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         mt_log!(Level::Fatal, "Config file {:?} was not found", config_file)
     }
+    mt_log!(Level::Info, "Finished program");
     mt_flush!().unwrap();
     Ok(())
 }
