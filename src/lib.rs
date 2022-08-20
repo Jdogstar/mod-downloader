@@ -1,3 +1,4 @@
+use pathways::generate_dir;
 use regex::Regex;
 use std::path::Path;
 use std::fs::{remove_file, write};
@@ -6,6 +7,7 @@ use reqwest::header::USER_AGENT;
 use reqwest::blocking;
 use mt_logger::*;
 mod unzip;
+mod pathways;
 
 fn retrieve_mod(mod_url: &String) -> Result<blocking::Response, Box<dyn Error>> {
     let client = blocking::Client::new();
@@ -80,6 +82,7 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     let path_ref = &format!("{}/{}", mod_path, perm_file_name)[..];
     let path = Path::new(path_ref);
     let parent_path = Path::new(mod_path);
+    generate_dir(parent_path).unwrap();
     match write(path, buf) {
         Ok(_) => mt_log!(Level::Info, "Successfully wrote file {}", &mod_url),
         Err(err) => {
@@ -102,7 +105,7 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     Ok(())
 }
 
-fn parse_filename (headers: &reqwest::header::HeaderMap) -> Option<String>{
+fn parse_filename(headers: &reqwest::header::HeaderMap) -> Option<String>{
     let re = Regex::new("filename=\"*([^\"]+)\"").unwrap();
     match headers.get("content-disposition") {
         Some(file_header) => {

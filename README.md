@@ -7,7 +7,7 @@ Simply head to the latest [release](https://github.com/Jdogstar/mod-downloader/r
 
 ## prerequisites
 ---
-1. You need 7zip installed and add the executable to your path (if it isn't by default): [windows-example](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/), [mac-example](https://osxdaily.com/2014/08/14/add-new-path-to-path-command-line/), [linux-example](https://linuxize.com/post/how-to-add-directory-to-path-in-linux/). A way to test this is to see if entering `7z` by itself in a terminal yields output.
+1. You need 7zip installed and you need to add the executable to your path (if it isn't by default): [windows-example](https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/), [mac-example](https://osxdaily.com/2014/08/14/add-new-path-to-path-command-line/), [linux-example](https://linuxize.com/post/how-to-add-directory-to-path-in-linux/). A way to test this is to see if entering `7z` by itself in a terminal yields output.
 2. In the same folder as the executable create a file .csv file named whatever you want (details on how to fill out this file are described later on).
 3. Gather the appropriate information about the mods you want to automate.
 
@@ -30,7 +30,7 @@ This is the config file that the program uses to store what mods you want to dow
 - Ensure that the file is actually a .csv file and not a .txt. Specifically on windows, when you create a new text document, by default it will not let you change extensions. Ensure that in your file explorer, you have enabled view file name extensions. If your config filename looks like `config.csv.txt`, just rename and delete the `.txt` and it should work.
 
 ## Usage
-Assuming you have read and completed the required tasks in the previous section, the usage is pretty simple. Simply open up any given terminal (powershell, command line, bash etc), navigate to where you placed the executable & csv file with cd /path/to/folder/holding/files/, and run the following command:
+Assuming you have read and completed the required tasks in the previous section, the usage is pretty simple. Simply open up any given terminal (powershell, bash, etc), navigate to where you placed the executable & csv file with cd /path/to/folder/holding/files/, and run the following command:
 > `./executable_name --path csv_name.csv` \
 > `./mod_downloader_linux --path test.csv`
 
@@ -54,20 +54,25 @@ In the folder the executable is located in, it will generate a folder called log
 
 - If the folders in the pathway inside the csv are not already created, the program will not download that mod successfully as it does not yet build the directories for you.
 
-## Potential TODO list
-These are features I would like to slowly integrate as I iteratively turn this into a more full fledged program:
-- [x] Convert to rust
-- [ ] Automatically build paths if they do not exist
+## Version 1.0 TODO list
+- [x] Enable file name column to be optional
+- [x] Automatically build paths if they do not exist
 - [ ] Detect if mods have or have not been updated using http headers
 - [ ] Instructions on how to put the binaries in the path, allowing for use anywhere
 - [ ] Remove the need for the csv file, replace with config files created by the program to facilitate path usage
+- [ ] Move logs to set location
 - [ ] Flesh out command line features and parameters to include ability for the following
     - [ ] Add a mod to the config
     - [ ] List current mods, and details
     - [ ] Remove a mod by name, deleting the mod
     - [ ] Move where a mod downloads to, which will also move the mod if it exists
-- [ ] Add automatic deletion of logs if no fatal error is detected
-- [ ] Move logs to set location
 - [ ] Improve logs for most actions with more details
 - [ ] Refactor most parts of the program
+- [ ] Update documentation
+
+
+
+## Potential future TODO list
+These are features I would like to slowly integrate as I iteratively turn this into a more full fledged program:
+- [ ] Add automatic deletion of logs if no error is detected, delete any log after 30 days of the logs creation
 - [ ] Investigate using selenium to add custom support for some websites aren't currently downloadable from
