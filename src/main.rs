@@ -6,6 +6,7 @@ use std::{vec::Vec, error::Error, path::Path};
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use mt_logger::*;
+use mod_downloader::mods::mod_details::ModDetails;
 
 /// A simple program to download mods
 #[derive(Parser, Debug)]
@@ -47,7 +48,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             pb.enable_steady_tick(300);
             pool.execute(move || {
                 pb.set_message(format!("Downloading and saving: {}", &rec.url));
-                let res = mod_downloader::get_mod((&rec.path, &rec.url, &rec.file_name));
+                let mod_details = ModDetails::new(rec.file_name, rec.url, rec.path);
+                let res = mod_downloader::get_mods(&mod_details);
                 match res {
                     Ok(_) => pb.finish_and_clear(),
                     Err(err) => {

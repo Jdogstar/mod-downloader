@@ -1,64 +1,35 @@
+use mods::get_mod::retrieve_mod;
+use mods::mod_details::ModDetails;
 use pathways::generate_dir;
 use regex::Regex;
 use std::path::Path;
 use std::fs::{remove_file, write};
 use std::{error::Error, ffi::OsStr};
-use reqwest::header::USER_AGENT;
-use reqwest::blocking;
 use mt_logger::*;
 mod unzip;
 mod pathways;
+pub mod mods;
 
-fn retrieve_mod(mod_url: &String) -> Result<blocking::Response, Box<dyn Error>> {
-    let client = blocking::Client::new();
-    client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send().expect("Something went wrong pinging the download.");
-    let mod_http = client.get(mod_url).header(USER_AGENT, "hyper/0.5.2").send();
-    let resp;
-    match mod_http {
-        Ok(res) => resp = res,
-        Err(err) => {
-            mt_log!(Level::Info, "{} with error: {}", mod_url, err);
-            return Err(format!("{} with error: {}", mod_url, err).into());
-        }
-    }
-    match resp.status().as_u16() {
-        200..=299 => mt_log!(Level::Info, "Successful request to {}", mod_url),
-        _ => {
-            mt_log!(Level::Error, "Unsuccessful request to {}", mod_url);
-            return Err(format!("Unsuccessful request to {}", mod_url).into());
-        }
-    }
-    match resp.headers().get("content-type") {
-        Some(cont_type) => mt_log!(Level::Info, "Content type {:?}", cont_type),
-        None => {
-            mt_log!(Level::Error, "No content type for {}", mod_url);
-            return Err(format!("Unsuccessful request to {}", mod_url).into());
-        }
-    }
-    Ok(resp)
-}
-
-pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), Box<dyn Error>> {
-    let (mod_path, mod_url, file_name) = mod_details;
+pub fn get_mods(mod_details: &ModDetails) -> Result<(), Box<dyn Error>> {
     let mut resp;
     let mut attempts = 5;
     loop {
-        match retrieve_mod(mod_url) {
+        match retrieve_mod(mod_details) {
             Ok(res) => {resp = res; break},
             Err(_error) => {attempts -= 1;}
         };
         if attempts < 0 {
-            mt_log!(Level::Error, "Failed to retrieve mod {}", &mod_url);
+            mt_log!(Level::Error, "Failed to retrieve mod {}", mod_details.url);
             return Err("Failed to retrieve mod".to_string().into());
         }
     }
     let ret = parse_filename(resp.headers());
     let mut buf: Vec<u8> = vec![];
     match resp.copy_to(&mut buf) {
-        Ok(_) => mt_log!(Level::Info, "Successfully parsed file {} into bytes", &mod_url),
+        Ok(_) => mt_log!(Level::Info, "Successfully parsed file {} into bytes", mod_details.url),
         Err(err) => {
-            mt_log!(Level::Error, "Couldn't parse file {} into bytes with err {}", &mod_url, &err);
-            return Err(format!("Couldn't parse file {} into bytes with err {}", &mod_url, &err).into())
+            mt_log!(Level::Error, "Couldn't parse file {} into bytes with err {}", mod_details.url, &err);
+            return Err(format!("Couldn't parse file {} into bytes with err {}", mod_details.url, &err).into())
         }
     }
     mt_flush!().unwrap();
@@ -66,7 +37,7 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
     match ret {
         Some(name) => perm_file_name = name,
         None => {
-            match file_name {
+            match &mod_details.default_name {
                 Some(name) => perm_file_name = name.to_string(),
                 None =>  {
                     println!("ERROR: no filename from http content, must provide filename in config");
@@ -79,15 +50,15 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
         let words_in_path: Vec<&str> = perm_file_name.split_whitespace().collect();
         perm_file_name = words_in_path.join("_")
     }
-    let path_ref = &format!("{}/{}", mod_path, perm_file_name)[..];
+    let path_ref = &format!("{}/{}", mod_details.mod_path, perm_file_name)[..];
     let path = Path::new(path_ref);
-    let parent_path = Path::new(mod_path);
+    let parent_path = Path::new(&mod_details.mod_path);
     generate_dir(parent_path).unwrap();
     match write(path, buf) {
-        Ok(_) => mt_log!(Level::Info, "Successfully wrote file {}", &mod_url),
+        Ok(_) => mt_log!(Level::Info, "Successfully wrote file {}", mod_details.url),
         Err(err) => {
-            mt_log!(Level::Error, "Couldn't write file {} with err {}", &mod_url, &err);
-            return Err(format!("Couldn't write file {} with err {}", &mod_url, &err).into())
+            mt_log!(Level::Error, "Couldn't write file {} with err {}", mod_details.url, &err);
+            return Err(format!("Couldn't write file {} with err {}", mod_details.url, &err).into())
         }
     }
     if path.extension() == Some(OsStr::new("package")) || path.extension() == Some(OsStr::new("script")) {
@@ -98,8 +69,8 @@ pub fn get_mod(mod_details: (&String, &String, &Option<String>)) -> Result<(), B
         remove_file(path).expect("Failed to clean up zip file");
     } else {
         remove_file(path).expect("Failed to remove temp file");
-        mt_log!(Level::Error, "ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_url, path.extension().unwrap());
-        return Err(format!("ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_url, path.extension().unwrap()).into());
+        mt_log!(Level::Error, "ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_details.url, path.extension().unwrap());
+        return Err(format!("ERROR: no acceptable extension for filename detected at url: {}, skipping .{:?}...", mod_details.url, path.extension().unwrap()).into());
     }
     mt_flush!().unwrap();
     Ok(())
